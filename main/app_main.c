@@ -14,8 +14,13 @@
 
 #include "wifi_mgr.h"
 #include "mqtt_mgr.h"
+#include "secrets.h"
 
-
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets_example.h"
+#endif
 static const char *TAG = "APP";
 
 void app_main(void)
@@ -25,7 +30,7 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
 
 ESP_ERROR_CHECK(wifi_mgr_init());
-ESP_ERROR_CHECK(wifi_mgr_connect_sta("Sunahome2.4GHZ", "AHHAM000", 15000));
+ESP_ERROR_CHECK(wifi_mgr_connect_sta(WIFI_SSID, WIFI_PASSWORD, 15000));
 ESP_ERROR_CHECK(mqtt_mgr_start());
 
     catalog_init_defaults();

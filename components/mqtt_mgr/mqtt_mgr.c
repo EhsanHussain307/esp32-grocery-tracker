@@ -1,8 +1,16 @@
+
 #include "mqtt_mgr.h"
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include <string.h>
 #include <stdio.h>
+#include "secrets.h"
+
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets_example.h"
+#endif
 
 extern const uint8_t hivemq_ca_pem_start[] asm("_binary_hivemq_ca_pem_start");
 extern const uint8_t hivemq_ca_pem_end[]   asm("_binary_hivemq_ca_pem_end");
@@ -11,11 +19,7 @@ static const char *TAG = "MQTT_MGR";
 static esp_mqtt_client_handle_t s_client = NULL;
 static bool s_connected = false;
 
-// ====== TODO: put these in menuconfig later ======
-#define MQTT_BROKER_URI "mqtts://5b03d33a134c4eb9b36309bf9052b9a8.s1.eu.hivemq.cloud:8883"
 
-#define MQTT_USERNAME     "ehsan"
-#define MQTT_PASSWORD     "Sunasuna307@"
 #define MQTT_DEVICE_NAME  "kitchen-esp32"
 // =================================================
 
