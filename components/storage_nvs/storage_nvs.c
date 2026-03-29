@@ -14,6 +14,11 @@
 
 #define STORE_VER    2
 
+#define KEYCATALOG_BLOB   "catalog_blob"
+#define KEYCATALOG_COUNT  "catalog_count"
+#define KEYCATALOG_VER    "catalog_ver"
+#define CATALOG_STORE_VER 1
+
 // Load blob (new). If missing, try old u64 and migrate.
 esp_err_t storage_nvs_load_missing_blob(void *out_blob, size_t blob_size, bool *out_migrated)
 {
@@ -86,5 +91,73 @@ esp_err_t storage_nvs_erase_old_u64(void)
     if (err == ESP_OK) err = nvs_commit(h);
 
     nvs_close(h);
+    return err;
+}
+
+esp_err_t storage_nvs_save_catalog_blob(const void *blob, size_t blob_size, uint32_t count)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READWRITE, &h);
+    if (err != ESP_OK) return err;
+
+    // Save version
+    err = nvs_set_u32(h, KEYCATALOG_VER, CATALOG_STORE_VER);
+    if (err != ESP_OK) {
+        nvs_close(h);
+        return err;
+    }
+
+    // Save item count
+    err = nvs_set_u32(h, KEYCATALOG_COUNT, count);
+    if (err != ESP_OK) {
+        nvs_close(h);
+        return err;
+    }
+
+    // Save raw catalog bytes
+    err = nvs_set_blob(h, KEYCATALOG_BLOB, blob, blob_size);
+    if (err == ESP_OK) err = nvs_commit(h);
+
+    nvs_close(h);
+    return err;
+}
+
+esp_err_t storage_nvs_load_catalog_blob(void *out_blob, size_t blob_size, uint32_t *out_count)
+{
+    if (!out_blob || !out_count) return ESP_ERR_INVALID_ARG;
+
+    nvs_handle_t h;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READONLY, &h);
+    if (err != ESP_OK) return err;
+
+    // Load count first
+    uint32_t count = 0;
+    err = nvs_get_u32(h, KEYCATALOG_COUNT, &count);
+    if (err != ESP_OK) {
+        nvs_close(h);
+        return err;
+    }
+
+    // Check how much blob data is stored
+    size_t required_size = 0;
+    err = nvs_get_blob(h, KEYCATALOG_BLOB, NULL, &required_size);
+    if (err != ESP_OK) {
+        nvs_close(h);
+        return err;
+    }
+
+    if (required_size > blob_size) {
+        nvs_close(h);
+        return ESP_ERR_NVS_INVALID_LENGTH;
+    }
+
+    // Load the blob bytes into RAM
+    err = nvs_get_blob(h, KEYCATALOG_BLOB, out_blob, &required_size);
+    nvs_close(h);
+
+    if (err == ESP_OK) {
+        *out_count = count;
+    }
+
     return err;
 }

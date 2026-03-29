@@ -32,8 +32,9 @@ ESP_ERROR_CHECK(wifi_mgr_init());
 ESP_ERROR_CHECK(wifi_mgr_connect_sta(WIFI_SSID, WIFI_PASSWORD, 15000));
 ESP_ERROR_CHECK(mqtt_mgr_start());
 
-    catalog_init_defaults();
-
+   if (!catalog_load_from_nvs_or_defaults()) {
+    ESP_LOGE(TAG, "Failed to load catalog");
+}
     list_store_t store;
     list_store_init(&store);
 
@@ -101,4 +102,5 @@ if (err == ESP_OK) {
         ui_render(&ui);
         vTaskDelay(pdMS_TO_TICKS(50));
     }
+   
 }
