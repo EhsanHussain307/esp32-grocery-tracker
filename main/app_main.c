@@ -2,19 +2,18 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-
+#include <string.h>
 #include "keypad.h"
 #include "display.h"
 #include "catalog.h"
 #include "list_store.h"
 #include "ui.h"
-
 #include "nvs_flash.h"
 #include "storage_nvs.h"
 
 #include "wifi_mgr.h"
 #include "mqtt_mgr.h"
-#include "secrets.h"
+
 
 #if __has_include("secrets.h")
   #include "secrets.h"
@@ -41,9 +40,33 @@ ESP_ERROR_CHECK(mqtt_mgr_start());
     //nvs load 
     #include "storage_nvs.h"
 
-uint64_t bits = 0;
-if (storage_nvs_load_missing_bits(&bits) == ESP_OK) {
-    list_store_set_missing_bits(&store, bits);
+// ===== NVS load (new blob format, with migration from old u64) =====
+uint8_t blob[LIST_BYTES];
+bool migrated = false;
+
+esp_err_t err = storage_nvs_load_missing_blob(blob, sizeof(blob), &migrated);
+
+if (err == ESP_OK) {
+    if (migrated) {
+        // Old u64 was found; blob contains old u64 in first 8 bytes (per our loader)
+        uint64_t old_bits = 0;
+        memcpy(&old_bits, blob, sizeof(old_bits));
+
+        // Convert old 0..63 bits into new bitset
+        list_store_set_missing_bits64(&store, old_bits);
+
+                ESP_ERROR_CHECK(storage_nvs_save_missing_blob(
+            list_store_get_missing_blob(&store),
+            list_store_get_missing_blob_size()
+        ));
+        storage_nvs_erase_old_u64();
+    } else {
+        // Normal case: blob already contains the new bitset
+        list_store_set_missing_blob(&store, blob, sizeof(blob));
+    }
+} else {
+    // If not found, just start empty (OK)
+  ESP_LOGW(TAG, "No saved list (err=%s)", esp_err_to_name(err));
 }
 
     // I2C OLED (found at 0x3C)

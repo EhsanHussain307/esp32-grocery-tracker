@@ -12,7 +12,7 @@ typedef struct {
     uint8_t id;
     category_t cat;
     const char *name;
-    char quick_key;   // '0'..'9' or 0 if not quick
+    int16_t code;   
 } item_t;
 
 void catalog_init_defaults(void);
@@ -26,3 +26,4 @@ int catalog_find_by_quick_key(char key);
 // for browse lists
 int catalog_first_index_in_category(category_t cat);
 int catalog_next_index_in_category(category_t cat, int current_index, int direction); // direction: +1 / -1
+int catalog_find_by_code(uint8_t code);

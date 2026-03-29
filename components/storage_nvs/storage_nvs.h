@@ -1,6 +1,12 @@
 #pragma once
-#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include "esp_err.h"
 
-esp_err_t storage_nvs_load_missing_bits(uint64_t *out_bits);
-esp_err_t storage_nvs_save_missing_bits(uint64_t bits);
+
+esp_err_t storage_nvs_load_missing_blob(void *out_blob, size_t blob_size, bool *out_migrated);
+
+esp_err_t storage_nvs_save_missing_blob(const void *blob, size_t blob_size);
+
+
+esp_err_t storage_nvs_erase_old_u64(void);
